@@ -634,6 +634,11 @@
             <button class="upload-btn" id="uploadBtn" style="display: none;">
                 Start Analysis
             </button>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="arCheckbox" />
+                <label for="arCheckbox">Create AR feedback video (Basketball only)</label>
+            </div>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -673,10 +678,10 @@
             if (isMobile()) {
                 // Reduce animation complexity on mobile
                 document.body.style.setProperty('--animation-duration', '0.2s');
-                
+
                 // Add touch-friendly class
                 document.body.classList.add('mobile-device');
-                
+
                 // Prevent zoom on input focus for iOS
                 const viewport = document.querySelector('meta[name="viewport"]');
                 if (viewport) {
@@ -738,6 +743,10 @@
             const formData = new FormData();
             formData.append('video', selectedFile);
             formData.append('sport_type', selectedSport);
+
+            // Add AR checkbox value to form data
+            const arCheckbox = document.getElementById('arCheckbox');
+            formData.append('ar_video', arCheckbox.checked);
 
             // Show progress
             document.getElementById('progressSection').style.display = 'block';
