@@ -5,7 +5,7 @@ channel = "stable-24_05"
 packages = ["libGL", "libGLU"]
 
 [workflows]
-runButton = "Run Basketball Analyzer"
+runButton = "Run Sports Analyzer"
 
 [[workflows.workflow]]
 name = "Run Basketball Analyzer"
@@ -15,3 +15,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python ball.py"
+
+[[workflows.workflow]]
+name = "Run Sports Analyzer"
+author = 14246877
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"

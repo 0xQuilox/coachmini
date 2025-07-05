@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -347,6 +346,25 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .file-hint {
+                color: #999;
+                font-size: 12px;
+                margin-top: 5px;
+            }
+
+            .checkbox-container {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                font-size: 14px;
+                color: #ddd;
+            }
+
+            .checkbox-container input {
+                margin-right: 10px;
+                transform: scale(1.2);
+            }
     </style>
 </head>
 <body>
@@ -382,7 +400,12 @@
                 <div class="feature-card">
                     <div class="feature-icon">💪</div>
                     <h3 class="feature-title">Gym Workouts</h3>
-                    <p class="feature-desc">Form analysis, rep counting, muscle activation, safety assessment</p>
+                    <p class="feature-desc">Exercise form, range of motion, muscle activation, safety assessment</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏀</div>
+                    <h3 class="feature-title">Basketball</h3>
+                    <p class="feature-desc">Shooting form, balance, follow-through, shot tracking with AR feedback</p>
                 </div>
             </div>
         </div>
@@ -393,13 +416,14 @@
                 <h2>Upload Your Training Video</h2>
                 <p>Drop your video here or click to browse</p>
             </div>
-            
+
             <div class="sport-selector">
                 <div class="sport-option active" data-sport="soccer">⚽ Soccer</div>
                 <div class="sport-option" data-sport="baseball">⚾ Baseball</div>
                 <div class="sport-option" data-sport="football">🏈 Football</div>
                 <div class="sport-option" data-sport="fitness">🏃 Fitness</div>
                 <div class="sport-option" data-sport="gym">💪 Gym</div>
+                <div class="sport-option" data-sport="basketball">🏀 Basketball</div>
             </div>
 
             <input type="file" id="videoFile" class="file-input" accept="video/*">
@@ -458,7 +482,7 @@
 
         // Drag and drop
         const uploadSection = document.getElementById('uploadSection');
-        
+
         uploadSection.addEventListener('dragover', function(e) {
             e.preventDefault();
             uploadSection.classList.add('dragover');
@@ -472,7 +496,7 @@
         uploadSection.addEventListener('drop', function(e) {
             e.preventDefault();
             uploadSection.classList.remove('dragover');
-            
+
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].type.startsWith('video/')) {
                 selectedFile = files[0];
@@ -500,7 +524,7 @@
                 progress += Math.random() * 10;
                 if (progress > 90) progress = 90;
                 document.getElementById('progressFill').style.width = progress + '%';
-                
+
                 if (progress < 30) {
                     document.getElementById('progressText').textContent = 'Uploading video...';
                 } else if (progress < 60) {
@@ -519,10 +543,10 @@
                 clearInterval(progressInterval);
                 document.getElementById('progressFill').style.width = '100%';
                 document.getElementById('progressText').textContent = 'Analysis complete!';
-                
+
                 setTimeout(() => {
                     document.getElementById('progressSection').style.display = 'none';
-                    
+
                     if (data.success) {
                         displayResults(data);
                     } else {
@@ -544,15 +568,15 @@
 
         function displayResults(data) {
             document.getElementById('resultsSection').style.display = 'block';
-            
+
             // Set video source
             const video = document.getElementById('processedVideo');
             video.src = '/' + data.processed_video;
-            
+
             // Display analysis results
             const analysisGrid = document.getElementById('analysisGrid');
             analysisGrid.innerHTML = '';
-            
+
             if (data.analysis) {
                 // Create analysis cards based on sport type
                 createAnalysisCards(data.analysis, selectedSport);
@@ -561,23 +585,23 @@
 
         function createAnalysisCards(analysis, sport) {
             const analysisGrid = document.getElementById('analysisGrid');
-            
+
             // Performance Summary Card
             const summaryCard = createCard('📊 Performance Summary', analysis.summary || 'Overall performance analysis completed');
             analysisGrid.appendChild(summaryCard);
-            
+
             // Statistics Card
             if (analysis.statistics) {
                 const statsCard = createStatsCard(analysis.statistics);
                 analysisGrid.appendChild(statsCard);
             }
-            
+
             // Technique Analysis Card
             if (analysis.technique) {
                 const techniqueCard = createCard('🎯 Technique Analysis', analysis.technique);
                 analysisGrid.appendChild(techniqueCard);
             }
-            
+
             // Improvement Suggestions Card
             if (analysis.suggestions) {
                 const suggestionsCard = createCard('💡 Improvement Suggestions', analysis.suggestions);
@@ -598,9 +622,9 @@
         function createStatsCard(stats) {
             const card = document.createElement('div');
             card.className = 'analysis-card';
-            
+
             let statsHTML = '<h3 class="card-title">📈 Performance Statistics</h3><div class="stats-grid">';
-            
+
             Object.entries(stats).forEach(([key, value]) => {
                 statsHTML += `
                     <div class="stat-item">
@@ -609,7 +633,7 @@
                     </div>
                 `;
             });
-            
+
             statsHTML += '</div>';
             card.innerHTML = statsHTML;
             return card;
