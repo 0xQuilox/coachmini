@@ -1,0 +1,17 @@
+modules = ["python-3.12", "dotnet-7.0", "dotnet-8.0", "bun-1.2", "bun-1.0", "c-clang14"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["libGL", "libGLU"]
+
+[workflows]
+runButton = "Run Basketball Analyzer"
+
+[[workflows.workflow]]
+name = "Run Basketball Analyzer"
+author = 14246877
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python ball.py"
