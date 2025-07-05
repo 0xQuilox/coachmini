@@ -6,18 +6,39 @@ import time
 import tempfile
 from typing import Dict, Any, List
 import google.generativeai as genai
+from dotenv import load_dotenv
+import threading
 
 class GeminiVideoAnalyzer:
     def __init__(self):
+        # Load environment variables from .env file
+        load_dotenv()
+        
         # Configure Gemini API
-        # Note: You'll need to set your API key in Replit Secrets
-        api_key = os.environ.get('GEMINI_API_KEY')
+        api_key = os.getenv('GEMINI_API_KEY')
         if api_key:
             genai.configure(api_key=api_key)
             self.model = genai.GenerativeModel('gemini-1.5-flash')
         else:
             self.model = None
-            print("Warning: GEMINI_API_KEY not found in environment variables")
+            print("Warning: GEMINI_API_KEY not found in .env file")
+        
+        # Rate limiting setup
+        self.last_request_time = 0
+        self.min_request_interval = 1.0  # Minimum 1 second between requests
+        self.request_lock = threading.Lock()
+
+    def _rate_limit_request(self):
+        """Ensure we don't exceed API rate limits"""
+        with self.request_lock:
+            current_time = time.time()
+            time_since_last = current_time - self.last_request_time
+            
+            if time_since_last < self.min_request_interval:
+                sleep_time = self.min_request_interval - time_since_last
+                time.sleep(sleep_time)
+            
+            self.last_request_time = time.time()
 
     def extract_frames_1fps(self, video_path: str, max_frames: int = 30) -> List[str]:
         """Extract frames at 1 FPS from video"""
@@ -70,6 +91,8 @@ class GeminiVideoAnalyzer:
                     "data": image_data
                 })
             
+            # Apply rate limiting before making API request
+            self._rate_limit_request()
             response = self.model.generate_content(analysis_parts)
             
             # Clean up temporary frames

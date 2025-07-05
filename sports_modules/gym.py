@@ -18,10 +18,20 @@ class GymAnalyzer:
             min_tracking_confidence=0.5
         )
         
-        # Configure Gemini API
-        api_key = "AIzaSyAo_0NUZ3PYViVUgSiEO3IfJdleGbdSTJM"
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # Load environment variables and configure Gemini API
+        load_dotenv()
+        api_key = os.getenv('GEMINI_API_KEY')
+        if api_key:
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+        else:
+            self.model = None
+            print("Warning: GEMINI_API_KEY not found in .env file")
+        
+        # Rate limiting setup
+        self.last_request_time = 0
+        self.min_request_interval = 1.0
+        self.request_lock = threading.Lock()
 
     def analyze_video(self, video_path: str, gemini_analysis: Dict[str, Any] = None) -> Dict[str, Any]:
         """Analyze gym workout video with exercise form analysis"""
@@ -118,6 +128,8 @@ class GymAnalyzer:
                     "data": image_data
                 })
             
+            # Apply rate limiting before making API request
+            self._rate_limit_request()
             response = self.model.generate_content(analysis_parts)
             
             for frame_path in frames:
