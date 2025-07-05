@@ -4,6 +4,7 @@ import os
 import cv2
 import json
 import time
+import logging
 from datetime import datetime
 import numpy as np
 from werkzeug.utils import secure_filename
@@ -21,6 +22,37 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 app.config['AR_FOLDER'] = 'ar_videos'
+
+# Production security configurations
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Configure logging for production
+if not app.debug:
+    logging.basicConfig(level=logging.INFO)
+
+@app.after_request
+def after_request(response):
+    """Add security headers for production"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'error': 'File too large. Maximum size is 500MB.'}), 413
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({'error': 'Resource not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    app.logger.error(f'Server Error: {e}')
+    return jsonify({'error': 'Internal server error'}), 500
 
 # Create upload directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -121,4 +153,7 @@ def ar_video(filename):
     return send_from_directory(app.config['AR_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Production configuration
+    import os
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode, threaded=True)

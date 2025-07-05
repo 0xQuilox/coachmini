@@ -19,7 +19,7 @@ class BaseballAnalyzer:
         )
         
         # Configure Gemini API
-        api_key = "AIzaSyAo_0NUZ3PYViVUgSiEO3IfJdleGbdSTJM"
+        api_key = os.environ.get('GEMINI_API_KEY', "AIzaSyAo_0NUZ3PYViVUgSiEO3IfJdleGbdSTJM")
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 

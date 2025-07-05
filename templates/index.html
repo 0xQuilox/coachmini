@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Advanced AI-powered sports performance analysis with Gemini">
+    <meta name="theme-color" content="#FFD700">
     <title>Sports Analysis Pro</title>
     <style>
         * {
@@ -319,31 +321,230 @@
             line-height: 1.5;
         }
 
-        @media (max-width: 768px) {
+        /* Mobile-first responsive design */
+        @media (max-width: 480px) {
             .container {
-                padding: 20px 10px;
+                padding: 15px 8px;
+            }
+
+            .header {
+                padding: 15px 10px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                font-size: 0.95rem;
             }
 
             .upload-section {
-                padding: 30px 20px;
+                padding: 25px 15px;
+                margin-bottom: 25px;
+            }
+
+            .upload-icon {
+                font-size: 3rem;
+                margin-bottom: 15px;
+            }
+
+            .upload-text {
+                font-size: 1.1rem;
+                margin-bottom: 20px;
             }
 
             .sport-selector {
                 flex-direction: column;
-                align-items: center;
+                gap: 10px;
             }
 
             .sport-option {
                 width: 100%;
-                max-width: 200px;
+                max-width: 280px;
+                padding: 12px 20px;
+                font-size: 0.95rem;
             }
 
-            .header h1 {
+            .upload-btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+                margin: 8px;
+            }
+
+            .features-section {
+                padding: 20px 15px;
+                margin-bottom: 25px;
+            }
+
+            .features-title {
+                font-size: 1.5rem;
+                margin-bottom: 15px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .feature-card {
+                padding: 15px;
+            }
+
+            .feature-icon {
                 font-size: 2rem;
+                margin-bottom: 10px;
+            }
+
+            .feature-title {
+                font-size: 1.1rem;
+                margin-bottom: 8px;
             }
 
             .analysis-grid {
                 grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .analysis-card {
+                padding: 15px;
+            }
+
+            .card-title {
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .stat-label {
+                font-size: 0.8rem;
+            }
+
+            .video-container {
+                margin-bottom: 20px;
+            }
+
+            .progress-section,
+            .results-section {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+
+            .error-message {
+                padding: 12px;
+                margin-bottom: 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .upload-section {
+                padding: 35px 25px;
+            }
+
+            .sport-selector {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 12px;
+            }
+
+            .sport-option {
+                flex: 0 0 calc(50% - 6px);
+                max-width: 200px;
+            }
+
+            .header h1 {
+                font-size: 2.2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 18px;
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .analysis-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (pointer: coarse) {
+            .sport-option {
+                min-height: 48px;
+                padding: 15px 25px;
+            }
+
+            .upload-btn {
+                min-height: 48px;
+                padding: 15px 40px;
+            }
+
+            .feature-card {
+                padding: 25px 20px;
+            }
+        }
+
+        /* Landscape mobile orientation */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .header {
+                padding: 10px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+                margin-bottom: 5px;
+            }
+
+            .upload-section {
+                padding: 20px 15px;
+            }
+
+            .features-section {
+                padding: 20px 15px;
+            }
+
+            .sport-selector {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .sport-option {
+                flex: 0 0 auto;
+                width: auto;
+                min-width: 120px;
             }
         }
 
@@ -461,6 +662,31 @@
     <script>
         let selectedSport = 'soccer';
         let selectedFile = null;
+
+        // Mobile-specific enhancements
+        function isMobile() {
+            return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // Optimize for mobile performance
+        function optimizeForMobile() {
+            if (isMobile()) {
+                // Reduce animation complexity on mobile
+                document.body.style.setProperty('--animation-duration', '0.2s');
+                
+                // Add touch-friendly class
+                document.body.classList.add('mobile-device');
+                
+                // Prevent zoom on input focus for iOS
+                const viewport = document.querySelector('meta[name="viewport"]');
+                if (viewport) {
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                }
+            }
+        }
+
+        // Initialize mobile optimizations
+        document.addEventListener('DOMContentLoaded', optimizeForMobile);
 
         // Sport selection
         document.querySelectorAll('.sport-option').forEach(option => {
