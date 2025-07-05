@@ -36,7 +36,7 @@ app.config['PROCESSED_FOLDER'] = 'processed'
 app.config['AR_FOLDER'] = 'ar_videos'
 
 # Production security configurations
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') != 'development'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
@@ -87,6 +87,15 @@ gemini_analyzer = GeminiVideoAnalyzer()
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for production monitoring"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'gemini_configured': bool(os.getenv('GEMINI_API_KEY'))
+    })
+
 @app.route('/upload', methods=['POST'])
 def upload_video():
     if 'video' not in request.files:
@@ -106,62 +115,108 @@ def upload_video():
         return jsonify({'error': f'Unsupported video format. Supported: {", ".join(allowed_extensions)}'}), 400
     
     if video_file:
-        filename = secure_filename(video_file.filename)
-        timestamp = str(int(time.time()))
-        filename = f"{timestamp}_{filename}"
-        video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        video_file.save(video_path)
-        
-        # Load basketball shot data if available and sport is basketball
-        if sport_type == 'basketball':
-            ball_json_path = 'ball.json'
-            if os.path.exists(ball_json_path):
-                analyzers[sport_type].load_shot_data(ball_json_path)
-        
-        # Process video with Gemini at 1fps
         try:
-            analysis_result = gemini_analyzer.analyze_video(video_path, sport_type)
+            filename = secure_filename(video_file.filename)
+            timestamp = str(int(time.time()))
+            filename = f"{timestamp}_{filename}"
+            video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            video_file.save(video_path)
             
-            # Process with sport-specific analyzer
-            if sport_type in analyzers:
-                sport_analysis = analyzers[sport_type].analyze_video(video_path, analysis_result)
+            # Validate video file after saving
+            if not os.path.exists(video_path):
+                return jsonify({'error': 'Failed to save video file'}), 500
+            
+            # Load basketball shot data if available and sport is basketball
+            if sport_type == 'basketball':
+                ball_json_path = 'ball.json'
+                if os.path.exists(ball_json_path):
+                    try:
+                        analyzers[sport_type].load_shot_data(ball_json_path)
+                    except Exception as e:
+                        app.logger.warning(f'Failed to load basketball shot data: {e}')
+            
+            # Process video with Gemini at 1fps
+            try:
+                analysis_result = gemini_analyzer.analyze_video(video_path, sport_type)
                 
-                # Create processed video with overlays
-                processed_video_path = analyzers[sport_type].create_processed_video(
-                    video_path, sport_analysis, app.config['PROCESSED_FOLDER']
-                )
-                
-                response_data = {
-                    'success': True,
-                    'analysis': sport_analysis,
-                    'processed_video': processed_video_path,
-                    'original_video': video_path
-                }
-                
-                # Create AR version if requested
-                if create_ar and hasattr(analyzers[sport_type], 'create_ar_video'):
-                    ar_video_path = analyzers[sport_type].create_ar_video(
-                        video_path, sport_analysis, app.config['AR_FOLDER'], show_corrections=True
+                # Process with sport-specific analyzer
+                if sport_type in analyzers:
+                    sport_analysis = analyzers[sport_type].analyze_video(video_path, analysis_result)
+                    
+                    # Create processed video with overlays
+                    processed_video_path = analyzers[sport_type].create_processed_video(
+                        video_path, sport_analysis, app.config['PROCESSED_FOLDER']
                     )
-                    response_data['ar_video'] = ar_video_path
-                
-                return jsonify(response_data)
-            else:
-                return jsonify({'error': 'Unsupported sport type'}), 400
+                    
+                    response_data = {
+                        'success': True,
+                        'analysis': sport_analysis,
+                        'processed_video': os.path.basename(processed_video_path),
+                        'original_video': os.path.basename(video_path)
+                    }
+                    
+                    # Create AR version if requested
+                    if create_ar and hasattr(analyzers[sport_type], 'create_ar_video'):
+                        try:
+                            ar_video_path = analyzers[sport_type].create_ar_video(
+                                video_path, sport_analysis, app.config['AR_FOLDER'], show_corrections=True
+                            )
+                            response_data['ar_video'] = os.path.basename(ar_video_path)
+                        except Exception as e:
+                            app.logger.warning(f'Failed to create AR video: {e}')
+                    
+                    return jsonify(response_data)
+                else:
+                    return jsonify({'error': 'Unsupported sport type'}), 400
+                    
+            except Exception as e:
+                app.logger.error(f'Analysis failed: {str(e)}')
+                # Clean up uploaded file on analysis failure
+                if os.path.exists(video_path):
+                    try:
+                        os.remove(video_path)
+                    except:
+                        pass
+                return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
                 
         except Exception as e:
-            return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+            app.logger.error(f'Upload processing failed: {str(e)}')
+            return jsonify({'error': f'Upload processing failed: {str(e)}'}), 500
 
 @app.route('/processed/<filename>')
 def processed_video(filename):
+    # Security: Validate filename
+    if not filename or '..' in filename or filename.startswith('/'):
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
     return send_from_directory(app.config['PROCESSED_FOLDER'], filename)
 
 @app.route('/uploads/<filename>')
 def uploaded_video(filename):
+    # Security: Validate filename
+    if not filename or '..' in filename or filename.startswith('/'):
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/ar/<filename>')
 def ar_video(filename):
+    # Security: Validate filename
+    if not filename or '..' in filename or filename.startswith('/'):
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    file_path = os.path.join(app.config['AR_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
     return send_from_directory(app.config['AR_FOLDER'], filename)
 
 if __name__ == '__main__':
@@ -169,9 +224,29 @@ if __name__ == '__main__':
     if not os.getenv('GEMINI_API_KEY'):
         print("Warning: GEMINI_API_KEY not set. Using mock analysis.")
     
+    # Validate required directories exist
+    required_dirs = [
+        app.config['UPLOAD_FOLDER'],
+        app.config['PROCESSED_FOLDER'], 
+        app.config['AR_FOLDER']
+    ]
+    
+    for dir_path in required_dirs:
+        if not os.path.exists(dir_path):
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+                print(f"Created directory: {dir_path}")
+            except Exception as e:
+                print(f"Failed to create directory {dir_path}: {e}")
+                exit(1)
+    
     # Production configuration
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
     port = int(os.environ.get('PORT', 5000))
+    
+    print(f"Starting Sports Analysis Pro on port {port}")
+    print(f"Debug mode: {debug_mode}")
+    print(f"Gemini API configured: {bool(os.getenv('GEMINI_API_KEY'))}")
     
     try:
         app.run(host='0.0.0.0', port=port, debug=debug_mode, threaded=True)
