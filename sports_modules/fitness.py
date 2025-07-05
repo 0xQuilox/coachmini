@@ -460,4 +460,3 @@ class FitnessAnalyzer:
     def create_processed_video(self, video_path: str, analysis_data: Dict[str, Any], output_dir: str) -> str:
         """Create processed video with standard analysis overlays"""
         return self.create_ar_video(video_path, analysis_data, output_dir, show_corrections=False)
-```
