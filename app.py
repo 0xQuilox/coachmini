@@ -1,14 +1,26 @@
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
+import warnings
+import logging
+
+# Suppress TensorFlow and MediaPipe warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+warnings.filterwarnings('ignore', category=UserWarning)
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import cv2
 import json
 import time
-import logging
 from datetime import datetime
 import numpy as np
 from werkzeug.utils import secure_filename
 import tempfile
+from dotenv import load_dotenv
+
+# Load environment variables at startup
+load_dotenv()
+
 from sports_modules.soccer import SoccerAnalyzer
 from sports_modules.baseball import BaseballAnalyzer
 from sports_modules.football import FootballAnalyzer
@@ -153,7 +165,16 @@ def ar_video(filename):
     return send_from_directory(app.config['AR_FOLDER'], filename)
 
 if __name__ == '__main__':
+    # Validate environment setup
+    if not os.getenv('GEMINI_API_KEY'):
+        print("Warning: GEMINI_API_KEY not set. Using mock analysis.")
+    
     # Production configuration
-    import os
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
-    app.run(host='0.0.0.0', port=5000, debug=debug_mode, threaded=True)
+    port = int(os.environ.get('PORT', 5000))
+    
+    try:
+        app.run(host='0.0.0.0', port=port, debug=debug_mode, threaded=True)
+    except Exception as e:
+        print(f"Failed to start application: {e}")
+        exit(1)

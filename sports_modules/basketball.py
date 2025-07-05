@@ -8,11 +8,11 @@ import time
 import threading
 import google.generativeai as genai
 from dotenv import load_dotenv
-from typing import Dict, Any, List
-import time
-from datetime import datetime
 from typing import Dict, Any, List, Tuple
-import tempfile
+from datetime import datetime
+
+# Load environment variables
+load_dotenv()
 
 class BasketballAnalyzer:
     def __init__(self):

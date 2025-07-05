@@ -4,10 +4,15 @@ import numpy as np
 import json
 import os
 import time
+import threading
 from datetime import datetime
 from typing import Dict, Any, List, Tuple
 import google.generativeai as genai
 import tempfile
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 class FootballAnalyzer:
     def __init__(self):
@@ -18,9 +23,18 @@ class FootballAnalyzer:
         )
 
         # Configure Gemini API
-        api_key = os.environ.get('GEMINI_API_KEY', "AIzaSyAo_0NUZ3PYViVUgSiEO3IfJdleGbdSTJM")
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        api_key = os.getenv('GEMINI_API_KEY')
+        if api_key:
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+        else:
+            self.model = None
+            print("Warning: GEMINI_API_KEY not found in environment variables")
+        
+        # Rate limiting setup
+        self.last_request_time = 0
+        self.min_request_interval = 1.0
+        self.request_lock = threading.Lock()
 
     def analyze_video(self, video_path: str, gemini_analysis: Dict[str, Any] = None) -> Dict[str, Any]:
         """Analyze football video with throwing, catching, and running mechanics"""
@@ -175,6 +189,18 @@ class FootballAnalyzer:
             pass
 
         return self._mock_football_analysis()
+
+    def _rate_limit_request(self):
+        """Apply rate limiting to API requests"""
+        with self.request_lock:
+            current_time = time.time()
+            time_since_last_request = current_time - self.last_request_time
+            
+            if time_since_last_request < self.min_request_interval:
+                sleep_time = self.min_request_interval - time_since_last_request
+                time.sleep(sleep_time)
+            
+            self.last_request_time = time.time()
 
     def _mock_football_analysis(self) -> Dict[str, Any]:
         """Generate mock analysis when Gemini is unavailable"""
