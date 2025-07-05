@@ -19,9 +19,13 @@ class BaseballAnalyzer:
         )
         
         # Configure Gemini API
-        api_key = os.environ.get('GEMINI_API_KEY', "AIzaSyAo_0NUZ3PYViVUgSiEO3IfJdleGbdSTJM")
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        api_key = os.environ.get('GEMINI_API_KEY')
+        if api_key:
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+        else:
+            self.model = None
+            print("Warning: GEMINI_API_KEY not found in environment variables")
 
     def analyze_video(self, video_path: str, gemini_analysis: Dict[str, Any] = None) -> Dict[str, Any]:
         """Analyze baseball video with batting and pitching mechanics"""

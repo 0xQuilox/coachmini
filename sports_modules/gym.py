@@ -5,10 +5,12 @@ import numpy as np
 import json
 import os
 import time
+import threading
 from datetime import datetime
 from typing import Dict, Any, List, Tuple
 import google.generativeai as genai
 import tempfile
+from dotenv import load_dotenv
 
 class GymAnalyzer:
     def __init__(self):
@@ -183,6 +185,18 @@ class GymAnalyzer:
             pass
         
         return self._mock_gym_analysis()
+
+    def _rate_limit_request(self):
+        """Apply rate limiting to API requests"""
+        with self.request_lock:
+            current_time = time.time()
+            time_since_last_request = current_time - self.last_request_time
+            
+            if time_since_last_request < self.min_request_interval:
+                sleep_time = self.min_request_interval - time_since_last_request
+                time.sleep(sleep_time)
+            
+            self.last_request_time = time.time()
 
     def _mock_gym_analysis(self) -> Dict[str, Any]:
         """Generate mock analysis when Gemini is unavailable"""
